@@ -4,7 +4,9 @@ const { NotePayloadSchema } = require('./schema');
 const NoteValidator = {
   validateNotePayload: async (payload) => {
     try {
-      await NotePayloadSchema.validateAsync(payload);
+      const value = await NotePayloadSchema.validateAsync(payload);
+
+      return value;
     } catch (error) {
       throw new InvariantError(error.message);
     }
