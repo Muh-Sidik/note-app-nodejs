@@ -1,8 +1,13 @@
+const ClientError = require('../../exceptions/ClientError');
+
 class NoteHandler {
   #service;
 
-  constructor(service) {
+  #validator;
+
+  constructor(service, validator) {
     this.#service = service;
+    this.#validator = validator;
 
     this.postNoteHandler = this.postNoteHandler.bind(this);
     this.getNotesHandler = this.getNotesHandler.bind(this);
@@ -12,9 +17,10 @@ class NoteHandler {
   }
 
   async postNoteHandler(request, h) {
-    const { title = 'untitled', tags, body } = request.payload;
-
     try {
+      await this.#validator.validateNotePayload(request.payload);
+
+      const { title = 'untitled', tags, body } = request.payload;
       const noteId = await this.#service.addNote({ title, tags, body });
 
       const response = h.response({
@@ -27,11 +33,21 @@ class NoteHandler {
       response.code(201);
       return response;
     } catch (error) {
+      if (error instanceof ClientError) {
+        const response = h.response({
+          status: 'fail',
+          message: error.message,
+        });
+        response.code(error.statusCode);
+        return response;
+      }
+
       const response = h.response({
-        status: 'fail',
-        message: error.message,
+        status: 'error',
+        message: 'Maaf, terjadi kegagalan pada server kami.',
       });
-      response.code(400);
+      response.code(500);
+      console.error(error);
       return response;
     }
   }
@@ -62,7 +78,7 @@ class NoteHandler {
         status: 'fail',
         message: error.message,
       });
-      response.code(400);
+      response.code(error.statusCode);
       return response;
     }
   }
@@ -71,7 +87,10 @@ class NoteHandler {
     const { id } = request.params;
 
     try {
-      await this.#service.putNoteById(id, request.payload);
+      await this.#validator.validateNotePayload(request.payload);
+
+      await this.#service.editNoteById(id, request.payload);
+
       const response = h.response({
         status: 'success',
         message: 'Catatan berhasil diperbarui',
@@ -83,15 +102,14 @@ class NoteHandler {
         status: 'fail',
         message: error.message,
       });
-      response.code(404);
+      response.code(error.statusCode);
       return response;
     }
   }
 
   async deleteNoteByIdHandler(request, h) {
-    const { id } = request.params;
-
     try {
+      const { id } = request.params;
       await this.#service.deleteNoteById(id);
       const response = h.response({
         status: 'success',
@@ -104,7 +122,7 @@ class NoteHandler {
         status: 'fail',
         message: error.message,
       });
-      response.code(404);
+      response.code(error.statusCode);
       return response;
     }
   }

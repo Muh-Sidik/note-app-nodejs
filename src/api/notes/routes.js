@@ -1,4 +1,4 @@
-const routes = (handler) => [
+const routes = async (handler) => [
   {
     method: 'POST',
     path: '/notes',
