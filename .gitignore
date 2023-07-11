@@ -1,3 +1,4 @@
 .env
-.pem
+.production.env
+dicoding-demo.pem
 node_modules
